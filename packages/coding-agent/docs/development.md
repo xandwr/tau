@@ -1,23 +1,21 @@
 # Development
 
-See [AGENTS.md](https://github.com/earendil-works/pi/blob/main/AGENTS.md) for additional guidelines.
+See the repository root `AGENTS.md` for project rules.
 
 ## Setup
 
 ```bash
-git clone https://github.com/earendil-works/pi
-cd pi
-npm install
-npm run build
+npm install --ignore-scripts
+npm run check
 ```
 
-Run from source:
+Run from source on Windows:
 
-```bash
-/path/to/pi/pi-test.sh
+```powershell
+.\pi-test.ps1
 ```
 
-The script can be run from any directory. Pi keeps the caller's current working directory.
+The script keeps the caller's current working directory.
 
 ### Experimental remote harness
 
@@ -32,24 +30,9 @@ PI_EXPERIMENTAL=1 ./pi-test.sh client
 
 The `client` and `experimental/plugin` package subpaths resolve only under the `source` condition in a checkout. Their implementations and the server/client commands are excluded from npm packages and standalone binaries. `pi-client`, `pi-protocol`, and `pi-server` are development dependencies of coding-agent, not runtime dependencies. The local SDK and stdio RPC API are unchanged.
 
-## Forking / Rebranding
-
-Configure via `package.json`:
-
-```json
-{
-  "piConfig": {
-    "name": "pi",
-    "configDir": ".pi"
-  }
-}
-```
-
-Change `name`, `configDir`, and `bin` field for your fork. Affects CLI banner, config paths, and environment variable names.
-
 ## Path Resolution
 
-Three execution modes: npm install, standalone binary, tsx from source.
+Tau runs from source or the local Node build.
 
 **Always use `src/config.ts`** for package assets:
 
@@ -73,11 +56,7 @@ npm test                          # Run all tests
 npm test -- test/specific.test.ts # Run specific test
 ```
 
-### Published package smoke test
-
-After building, run `npm run check:package-install`. It packs the public packages and installs only coding-agent as a direct dependency in a temporary directory outside the repository. Local tarball overrides select declared transitive dependencies without installing development-only packages. The check verifies SDK imports and CLI startup without credentials or model requests.
-
-`npm run check` also checks runtime dependency declarations and rejects excluded development sources pulled into a package's build through imports.
+`npm run check` checks formatting, types, dependency declarations, entry-point boundaries, and browser compatibility.
 
 ## Project Structure
 

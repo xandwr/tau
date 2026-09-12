@@ -159,8 +159,6 @@ Global and project settings merge recursively **before** model lookup. A project
 
 `enabled` is not model-specific. The active model's token settings apply to manual compaction, automatic threshold checks (including between assistant turns), and overflow recovery. Switching models takes effect on the next check or compaction. Configure overrides in JSON; `/settings` retains the ordinary auto-compaction toggle.
 
-See [compaction.md](compaction.md) for trigger and summarization behavior.
-
 ### Branch Summary
 
 | Setting | Type | Default | Description |
@@ -350,8 +348,6 @@ Object form filters which resources to load:
   ]
 }
 ```
-
-See [packages.md](packages.md) for package management details.
 
 ## Example
 

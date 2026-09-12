@@ -30,7 +30,6 @@ Read and follow `C:/Users/xander/Agents/SYSTEM.md` before starting work.
 - Install with `npm install --ignore-scripts` or `npm ci --ignore-scripts`.
 - Review dependency and lockfile changes as code.
 - Read the target release notes before updating `undici`.
-- Regenerate the coding-agent shrinkwrap with `node scripts/generate-coding-agent-shrinkwrap.mjs` when required.
 
 ## Git
 
@@ -44,4 +43,3 @@ Read and follow `C:/Users/xander/Agents/SYSTEM.md` before starting work.
 ## Specialized workflows
 
 - For interactive TUI testing, follow `.pi/skills/interactive-testing.md`.
-- For releases, follow `.pi/skills/release.md`.

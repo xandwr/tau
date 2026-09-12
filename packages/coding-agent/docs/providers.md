@@ -299,13 +299,11 @@ Or set `GOOGLE_APPLICATION_CREDENTIALS` to a service account key file.
 
 Pi supports the llama.cpp router server. Configure it with `/login llama.cpp`, manage loaded models with `/llama`, and select a loaded model with `/model`.
 
-See [llama.cpp](llama-cpp.md) for server setup, model directory layout, environment variables, and command usage.
-
 ## Custom Providers
 
 **Via models.json:** Add Ollama, LM Studio, vLLM, or any provider that speaks a supported API (OpenAI Completions, OpenAI Responses, Anthropic Messages, Google Generative AI). See [models.md](models.md).
 
-**Via extensions:** For providers that need custom API implementations or OAuth flows, create an extension. See [custom-provider.md](custom-provider.md) and [examples/extensions/custom-provider-gitlab-duo](../examples/extensions/custom-provider-gitlab-duo/).
+**Via extensions:** Providers that need custom API implementations or OAuth flows can register them through the extension API.
 
 ## Resolution Order
 
