@@ -25,6 +25,13 @@ const targets = [
 	},
 ];
 
+const requestedArch = process.env.PI_TUI_WIN32_ARCH;
+const selectedTargets = requestedArch ? targets.filter((target) => target.arch === requestedArch) : targets;
+
+if (requestedArch && selectedTargets.length === 0) {
+	throw new Error("PI_TUI_WIN32_ARCH must be either 'x64' or 'arm64'");
+}
+
 function removeTemporaryDir() {
 	rmSync(temporaryDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 }
@@ -207,6 +214,7 @@ Builds win32-x64 and win32-arm64 native prebuilds.
 
 Environment:
   PI_TUI_WIN32_TOOLCHAIN=msvc|mingw
+  PI_TUI_WIN32_ARCH=x64|arm64
   CC_X64=/path/to/x86_64-w64-mingw32-gcc
   CC_ARM64=/path/to/aarch64-w64-mingw32-gcc
   CC=/path/to/clang`);
@@ -226,7 +234,7 @@ if (toolchain === "msvc") {
 	if (!vsDevCmd || !hasMsvc) {
 		throw new Error("Microsoft C++ Build Tools not found. Install the Visual Studio C++ workload or set PI_TUI_WIN32_TOOLCHAIN=mingw.");
 	}
-	for (const target of targets) buildWithMsvc(target, vsDevCmd);
+	for (const target of selectedTargets) buildWithMsvc(target, vsDevCmd);
 } else {
-	for (const target of targets) buildWithMingw(target);
+	for (const target of selectedTargets) buildWithMingw(target);
 }

@@ -10,6 +10,8 @@ On Windows, install Visual Studio's "Desktop development with C++" workload, the
 npm --prefix packages/tui run build:native:win32
 ```
 
+To build only the current machine's architecture, set `PI_TUI_WIN32_ARCH` to `x64` or `arm64`.
+
 For cross-builds or custom toolchains, provide MinGW-compatible compilers:
 
 ```sh
