@@ -7,6 +7,7 @@
 		"packages/session-backends/*"
 	],
 	"scripts": {
+		"dev": "tsx --tsconfig tsconfig.json packages/coding-agent/src/experimental/cli.ts",
 		"clean": "npm run clean --workspaces",
 		"build": "cd packages/chord && npm run build && cd ../tui && npm run build && cd ../telemetry && npm run build && cd ../ai && npm run build && cd ../agent && npm run build && cd ../session-backends/sqlite-node && npm run build && cd ../../protocol && npm run build && cd ../client && npm run build && cd ../server && npm run build && cd ../coding-agent && npm run build",
 		"build:offline": "cd packages/chord && npm run build && cd ../tui && npm run build && cd ../telemetry && npm run build && cd ../ai && npm run build:offline && cd ../agent && npm run build && cd ../session-backends/sqlite-node && npm run build && cd ../../protocol && npm run build && cd ../client && npm run build && cd ../server && npm run build && cd ../coding-agent && npm run build",
@@ -14,7 +15,9 @@
 		"build:native:linux": "npm --prefix packages/tui run build:native:linux",
 		"build:native:win32": "npm --prefix packages/tui run build:native:win32",
 		"format": "biome check --write .",
-		"check": "biome check --error-on-warnings . && npm run check:pinned-deps && npm run check:runtime-deps && npm run check:ts-imports && npm run check:entry-graphs && tsgo --noEmit && npm run check:browser-smoke",
+		"lint": "biome check --error-on-warnings .",
+		"typecheck": "tsgo --noEmit",
+		"check": "npm run lint && npm run check:pinned-deps && npm run check:runtime-deps && npm run check:ts-imports && npm run check:entry-graphs && npm run typecheck && npm run check:browser-smoke",
 		"check:browser-smoke": "node scripts/check-browser-smoke.mjs",
 		"check:pinned-deps": "node scripts/check-pinned-deps.mjs",
 		"check:runtime-deps": "node scripts/check-runtime-deps.mjs",
