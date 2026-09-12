@@ -20,7 +20,7 @@ Read and follow `C:/Users/xander/Agents/SYSTEM.md` before starting work.
 
 - After code changes, run `npm run check` and fix every diagnostic.
 - Do not run `npm run build` or `npm test` unless requested.
-- Run non-e2e tests with `./test.sh`, or run a focused test from its package.
+- Run non-e2e tests with `./test.sh` (`./test.ps1` on Windows), or run a focused test from its package.
 - Run every test file you create or modify.
 - Use the faux provider for coding-agent suite tests. Never use paid provider calls.
 

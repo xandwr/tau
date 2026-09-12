@@ -8,12 +8,15 @@ The primary runtime is `packages/coding-agent`, supported by the agent, AI, TUI,
 
 ```bash
 npm install --ignore-scripts
+npm run format
 npm run check
 ./test.sh
 ./pi-test.sh
 ```
 
-`npm run check` formats, lints, and type-checks the workspace. `./test.sh` runs non-e2e tests. `./pi-test.sh` runs Tau from source.
+On Windows, use `./test.ps1` and `./pi-test.ps1` from PowerShell.
+
+`npm run format` formats the workspace. `npm run check` validates formatting, lint rules, types, dependency boundaries, and browser entry points. `./test.sh` runs non-e2e tests. `./pi-test.sh` runs Tau from source.
 
 ## Runtime permissions
 
