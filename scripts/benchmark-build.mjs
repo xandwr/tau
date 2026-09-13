@@ -4,6 +4,8 @@ import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { performance } from "node:perf_hooks";
 
+import { runWorkspaceBuilds } from "./build-workspaces.mjs";
+
 const npmCli = join(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
 const npmCommand = process.platform === "win32" ? process.execPath : "npm";
 const npmArgs = (...args) => (process.platform === "win32" ? [npmCli, ...args] : args);
@@ -25,62 +27,9 @@ if (benchmarkArgs.has("--include-native") && process.platform === "win32") {
 	});
 }
 
-steps.push(
-	{ name: "chord", command: npmCommand, args: npmArgs("--prefix", "packages/chord", "run", "build") },
-	{ name: "tui", command: npmCommand, args: npmArgs("--prefix", "packages/tui", "run", "build") },
-	{
-		name: "telemetry",
-		command: npmCommand,
-		args: npmArgs("--prefix", "packages/telemetry", "run", "build"),
-	},
-);
-
 if (benchmarkArgs.has("--refresh-models")) {
 	steps.push({ name: "ai:model-generation", command: npmCommand, args: npmArgs("run", "generate:models") });
 }
-
-steps.push(
-	{
-		name: "ai:compile",
-		command: npmCommand,
-		args: npmArgs("--prefix", "packages/ai", "run", "build:offline"),
-	},
-	{
-		name: "agent",
-		command: npmCommand,
-		args: npmArgs("--prefix", "packages/agent", "run", "build"),
-	},
-	{
-		name: "session-backend:sqlite-node",
-		command: npmCommand,
-		args: npmArgs("--prefix", "packages/session-backends/sqlite-node", "run", "build"),
-	},
-	{
-		name: "protocol",
-		command: npmCommand,
-		args: npmArgs("--prefix", "packages/protocol", "run", "build"),
-	},
-	{
-		name: "client",
-		command: npmCommand,
-		args: npmArgs("--prefix", "packages/client", "run", "build"),
-	},
-	{
-		name: "server",
-		command: npmCommand,
-		args: npmArgs("--prefix", "packages/server", "run", "build"),
-	},
-	{
-		name: "coding-agent:compile",
-		command: npmCommand,
-		args: npmArgs("--prefix", "packages/coding-agent", "run", "build:unbundled"),
-	},
-	{
-		name: "coding-agent:bundle",
-		command: process.execPath,
-		args: ["scripts/build-coding-agent-bundle.mjs"],
-	},
-);
 
 function formatDuration(milliseconds) {
 	return `${(milliseconds / 1000).toFixed(2)}s`;
@@ -89,19 +38,16 @@ function formatDuration(milliseconds) {
 function printSummary(results, totalMilliseconds) {
 	const nameWidth = Math.max("Step".length, ...results.map((result) => result.name.length));
 	const durationWidth = Math.max("Duration".length, ...results.map((result) => formatDuration(result.milliseconds).length));
-	const header = `${"Step".padEnd(nameWidth)}  ${"Duration".padStart(durationWidth)}  Share`;
+	const header = `${"Step".padEnd(nameWidth)}  ${"Duration".padStart(durationWidth)}`;
 
 	console.log("\nBuild benchmark summary");
 	console.log(header);
 	console.log("-".repeat(header.length));
 	for (const result of results) {
-		const share = totalMilliseconds === 0 ? 0 : (result.milliseconds / totalMilliseconds) * 100;
-		console.log(
-			`${result.name.padEnd(nameWidth)}  ${formatDuration(result.milliseconds).padStart(durationWidth)}  ${share.toFixed(1).padStart(5)}%`,
-		);
+		console.log(`${result.name.padEnd(nameWidth)}  ${formatDuration(result.milliseconds).padStart(durationWidth)}`);
 	}
 	console.log("-".repeat(header.length));
-	console.log(`${"total".padEnd(nameWidth)}  ${formatDuration(totalMilliseconds).padStart(durationWidth)}  100.0%`);
+	console.log(`${"wall-clock total".padEnd(nameWidth)}  ${formatDuration(totalMilliseconds).padStart(durationWidth)}`);
 }
 
 function runStep(step) {
@@ -131,6 +77,7 @@ const benchmarkStartedAt = performance.now();
 try {
 	console.log(`Build benchmark on ${process.platform}-${process.arch}, Node ${process.version}`);
 	for (const step of steps) results.push(await runStep(step));
+	results.push(...(await runWorkspaceBuilds()));
 	printSummary(results, performance.now() - benchmarkStartedAt);
 } catch (error) {
 	const totalMilliseconds = performance.now() - benchmarkStartedAt;
