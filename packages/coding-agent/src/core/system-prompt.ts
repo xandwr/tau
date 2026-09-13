@@ -3,6 +3,7 @@
  */
 
 import { formatSkillsForPrompt, type Skill } from "./skills.ts";
+import { SYSTEM_PROMPT_CONFIG } from "./system-prompt.config.ts";
 
 export interface BuildSystemPromptOptions {
 	/** Custom system prompt (replaces default). */
@@ -23,6 +24,16 @@ export interface BuildSystemPromptOptions {
 	skills?: Skill[];
 }
 
+function renderProjectContext(contextFiles: Array<{ path: string; content: string }>): string {
+	const config = SYSTEM_PROMPT_CONFIG.projectContext;
+	let section = config.opening + config.introduction;
+	for (const { path, content } of contextFiles) {
+		section += config.instructionOpening + path + config.instructionContentSeparator;
+		section += content + config.instructionClosing;
+	}
+	return section + config.closing;
+}
+
 /** Build the system prompt with tools, guidelines, and context */
 export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 	const {
@@ -37,12 +48,14 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 	} = options;
 	const promptCwd = cwd.replace(/\\/g, "/");
 
-	const appendSection = appendSystemPrompt ? `\n\n${appendSystemPrompt}` : "";
+	const appendSection = appendSystemPrompt
+		? SYSTEM_PROMPT_CONFIG.formatting.appendSectionPrefix + appendSystemPrompt
+		: "";
 
 	const contextFiles = providedContextFiles ?? [];
 	const skills = providedSkills ?? [];
-	const tools = selectedTools || ["read", "bash", "edit", "write"];
-	const skillFileReadTool = (["read", "bash"] as const).find((tool) => tools.includes(tool));
+	const tools = selectedTools || [...SYSTEM_PROMPT_CONFIG.defaultTools];
+	const skillFileReadTool = SYSTEM_PROMPT_CONFIG.skillFileReadTools.find((tool) => tools.includes(tool));
 
 	if (customPrompt) {
 		let prompt = customPrompt;
@@ -53,12 +66,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 
 		// Append project context files
 		if (contextFiles.length > 0) {
-			prompt += "\n\n<project_context>\n\n";
-			prompt += "Project-specific instructions and guidelines:\n\n";
-			for (const { path: filePath, content } of contextFiles) {
-				prompt += `<project_instructions path="${filePath}">\n${content}\n</project_instructions>\n\n`;
-			}
-			prompt += "</project_context>\n";
+			prompt += renderProjectContext(contextFiles);
 		}
 
 		// Append skills when a tool capable of reading their files is available.
@@ -66,7 +74,10 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 			prompt += formatSkillsForPrompt(skills, skillFileReadTool);
 		}
 
-		prompt += `\nCurrent working directory: ${promptCwd}\n`;
+		prompt +=
+			SYSTEM_PROMPT_CONFIG.workingDirectory.prefix +
+			promptCwd +
+			SYSTEM_PROMPT_CONFIG.workingDirectory.customPromptSuffix;
 
 		return prompt;
 	}
@@ -75,7 +86,17 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 	// A tool appears in Available tools only when the caller provides a one-line snippet.
 	const visibleTools = tools.filter((name) => !!toolSnippets?.[name]);
 	const toolsList =
-		visibleTools.length > 0 ? visibleTools.map((name) => `- ${name}: ${toolSnippets![name]}`).join("\n") : "(none)";
+		visibleTools.length > 0
+			? visibleTools
+					.map(
+						(name) =>
+							SYSTEM_PROMPT_CONFIG.formatting.listItemPrefix +
+							name +
+							SYSTEM_PROMPT_CONFIG.formatting.toolNameSeparator +
+							toolSnippets![name],
+					)
+					.join(SYSTEM_PROMPT_CONFIG.formatting.lineSeparator)
+			: SYSTEM_PROMPT_CONFIG.defaultPrompt.noVisibleTools;
 
 	// Build guidelines based on which tools are actually available
 	const guidelinesList: string[] = [];
@@ -88,20 +109,20 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 		guidelinesList.push(guideline);
 	};
 
-	const hasBash = tools.includes("bash");
-	const hasPowerShell = tools.includes("powershell");
-	const hasGrep = tools.includes("grep");
-	const hasFind = tools.includes("find");
-	const hasLs = tools.includes("ls");
+	const hasBash = tools.includes(SYSTEM_PROMPT_CONFIG.toolNames.bash);
+	const hasPowerShell = tools.includes(SYSTEM_PROMPT_CONFIG.toolNames.powershell);
+	const hasGrep = tools.includes(SYSTEM_PROMPT_CONFIG.toolNames.grep);
+	const hasFind = tools.includes(SYSTEM_PROMPT_CONFIG.toolNames.find);
+	const hasLs = tools.includes(SYSTEM_PROMPT_CONFIG.toolNames.ls);
 
 	// File exploration guidelines
 	if ((hasBash || hasPowerShell) && !hasGrep && !hasFind && !hasLs) {
 		if (hasBash && hasPowerShell) {
-			addGuideline("Use bash or PowerShell for file operations like listing, searching, and finding files");
+			addGuideline(SYSTEM_PROMPT_CONFIG.guidelines.fileExploration.bashAndPowerShell);
 		} else if (hasPowerShell) {
-			addGuideline("Use PowerShell for file operations like listing, searching, and finding files");
+			addGuideline(SYSTEM_PROMPT_CONFIG.guidelines.fileExploration.powershell);
 		} else {
-			addGuideline("Use bash for file operations like ls, rg, find");
+			addGuideline(SYSTEM_PROMPT_CONFIG.guidelines.fileExploration.bash);
 		}
 	}
 
@@ -112,24 +133,23 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 		}
 	}
 
-	// Always include these
-	addGuideline("Be concise in your responses");
-	addGuideline(
-		"Don't let warnings or misconfigured environments pass under your radar for the sake of 'commit scope'--prefer to bring them up to the user for fix ASAP",
-	);
-	addGuideline("Show file paths clearly when working with files");
+	for (const guideline of SYSTEM_PROMPT_CONFIG.guidelines.required) {
+		addGuideline(guideline);
+	}
 
-	const guidelines = guidelinesList.map((g) => `- ${g}`).join("\n");
+	const guidelines = guidelinesList
+		.map((guideline) => SYSTEM_PROMPT_CONFIG.formatting.listItemPrefix + guideline)
+		.join(SYSTEM_PROMPT_CONFIG.formatting.lineSeparator);
 
-	let prompt = `You are a coding mastermind operating inside Tau, a coding agent harness. You help your user by reading files, executing commands, editing code, and writing new files--the works, y'know? And yeah, the human writing this during development is having *too* much fun right now.
-
-Available tools:
-${toolsList}
-
-In addition to the tools above, you may have access to other custom tools depending on the project.
-
-Guidelines:
-${guidelines}`;
+	const defaultPromptSections = [
+		SYSTEM_PROMPT_CONFIG.defaultPrompt.introduction,
+		SYSTEM_PROMPT_CONFIG.defaultPrompt.availableToolsHeading +
+			SYSTEM_PROMPT_CONFIG.formatting.lineSeparator +
+			toolsList,
+		SYSTEM_PROMPT_CONFIG.defaultPrompt.customToolsNotice,
+		SYSTEM_PROMPT_CONFIG.defaultPrompt.guidelinesHeading + SYSTEM_PROMPT_CONFIG.formatting.lineSeparator + guidelines,
+	];
+	let prompt = defaultPromptSections.join(SYSTEM_PROMPT_CONFIG.defaultPrompt.sectionSeparator);
 
 	if (appendSection) {
 		prompt += appendSection;
@@ -137,12 +157,7 @@ ${guidelines}`;
 
 	// Append project context files
 	if (contextFiles.length > 0) {
-		prompt += "\n\n<project_context>\n\n";
-		prompt += "Project-specific instructions and guidelines:\n\n";
-		for (const { path: filePath, content } of contextFiles) {
-			prompt += `<project_instructions path="${filePath}">\n${content}\n</project_instructions>\n\n`;
-		}
-		prompt += "</project_context>\n";
+		prompt += renderProjectContext(contextFiles);
 	}
 
 	// Append skills when a tool capable of reading their files is available.
@@ -150,7 +165,10 @@ ${guidelines}`;
 		prompt += formatSkillsForPrompt(skills, skillFileReadTool);
 	}
 
-	prompt += `\nCurrent working directory: ${promptCwd}`;
+	prompt +=
+		SYSTEM_PROMPT_CONFIG.workingDirectory.prefix +
+		promptCwd +
+		SYSTEM_PROMPT_CONFIG.workingDirectory.defaultPromptSuffix;
 
 	return prompt;
 }

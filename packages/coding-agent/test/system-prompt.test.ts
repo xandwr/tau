@@ -13,6 +13,60 @@ const testSkill: Skill = {
 };
 
 describe("buildSystemPrompt", () => {
+	describe("rendering compatibility", () => {
+		test("renders the complete default prompt without changing its bytes", () => {
+			const prompt = buildSystemPrompt({
+				selectedTools: [],
+				contextFiles: [],
+				skills: [],
+				cwd: "C:\\workspace",
+			});
+
+			expect(
+				prompt,
+			).toBe(`You are a coding mastermind operating inside Tau, a coding agent harness. You help your user by reading files, executing commands, editing code, and writing new files--the works, y'know? And yeah, the human writing this during development is having *too* much fun right now.
+
+Available tools:
+(none)
+
+In addition to the tools above, you may have access to other custom tools depending on the project.
+
+Guidelines:
+- Be concise in your responses
+- Don't let warnings or misconfigured environments pass under your radar for the sake of 'commit scope'--prefer to bring them up to the user for fix ASAP
+- Show file paths clearly when working with files
+Current working directory: C:/workspace`);
+		});
+
+		test("renders custom prompt additions without changing their bytes", () => {
+			const prompt = buildSystemPrompt({
+				customPrompt: "Custom system prompt",
+				appendSystemPrompt: "Appended instructions",
+				selectedTools: [],
+				contextFiles: [{ path: "/workspace/AGENTS.md", content: "Project instructions" }],
+				skills: [],
+				cwd: "C:\\workspace",
+			});
+
+			expect(prompt).toBe(`Custom system prompt
+
+Appended instructions
+
+<project_context>
+
+Project-specific instructions and guidelines:
+
+<project_instructions path="/workspace/AGENTS.md">
+Project instructions
+</project_instructions>
+
+</project_context>
+
+Current working directory: C:/workspace
+`);
+		});
+	});
+
 	describe("empty tools", () => {
 		test("shows (none) for empty tools list", () => {
 			const prompt = buildSystemPrompt({
