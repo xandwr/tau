@@ -1,7 +1,7 @@
 set windows-shell := ["pwsh", "-NoLogo", "-NoProfile", "-Command"]
 
 build:
-    npm run build:offline; exit $LASTEXITCODE
+    @node scripts/build-workspaces.mjs --pretty
 
 build-native:
     $env:PI_TUI_WIN32_ARCH = 'x64'; npm run build:native:win32; exit $LASTEXITCODE

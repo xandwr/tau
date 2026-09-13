@@ -34,23 +34,40 @@ export const workspaceBuilds = [
 	},
 ];
 
-function runCommand(build, signal) {
+export class WorkspaceBuildError extends Error {
+	constructor(buildName, reason, output) {
+		super(`${buildName} failed with ${reason}`);
+		this.name = "WorkspaceBuildError";
+		this.buildName = buildName;
+		this.output = output;
+	}
+}
+
+function runCommand(build, signal, quiet) {
 	return new Promise((resolve, reject) => {
-		const child = spawn(build.command, build.args, { signal, stdio: "inherit" });
-		child.on("error", reject);
-		child.on("exit", (code, exitSignal) => {
+		const output = [];
+		const child = spawn(build.command, build.args, {
+			signal,
+			stdio: quiet ? ["ignore", "pipe", "pipe"] : "inherit",
+		});
+		child.stdout?.on("data", (chunk) => output.push(chunk));
+		child.stderr?.on("data", (chunk) => output.push(chunk));
+		child.on("error", (error) => {
+			reject(new WorkspaceBuildError(build.name, error.message, error.stack ?? error.message));
+		});
+		child.on("close", (code, exitSignal) => {
 			if (code === 0) {
 				resolve();
 				return;
 			}
 			const reason = exitSignal ? `signal ${exitSignal}` : `exit code ${code ?? 1}`;
-			reject(new Error(`${build.name} failed with ${reason}`));
+			reject(new WorkspaceBuildError(build.name, reason, Buffer.concat(output).toString("utf8")));
 		});
 	});
 }
 
-export async function runWorkspaceBuilds() {
-	const buildByName = new Map(workspaceBuilds.map((build) => [build.name, build]));
+export async function runWorkspaceBuilds({ builds = workspaceBuilds, quiet = false } = {}) {
+	const buildByName = new Map(builds.map((build) => [build.name, build]));
 	const promises = new Map();
 	const controller = new AbortController();
 	let firstError;
@@ -67,10 +84,10 @@ export async function runWorkspaceBuilds() {
 			}),
 		).then(async () => {
 			if (firstError) throw firstError;
-			console.log(`\n[build] ${build.name}`);
+			if (!quiet) console.log(`\n[build] ${build.name}`);
 			const startedAt = performance.now();
 			try {
-				await runCommand(build, controller.signal);
+				await runCommand(build, controller.signal, quiet);
 			} catch (error) {
 				if (!firstError) {
 					firstError = error instanceof Error ? error : new Error(String(error));
@@ -87,17 +104,30 @@ export async function runWorkspaceBuilds() {
 	}
 
 	try {
-		return await Promise.all(workspaceBuilds.map(runBuild));
+		return await Promise.all(builds.map(runBuild));
 	} catch (error) {
 		throw firstError ?? error;
 	}
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+	const args = new Set(process.argv.slice(2));
 	try {
-		await runWorkspaceBuilds();
+		for (const argument of args) {
+			if (argument !== "--pretty") throw new Error(`Unknown argument: ${argument}`);
+		}
+		const pretty = args.has("--pretty");
+		const startedAt = performance.now();
+		if (pretty) console.log(`Building Tau harness for ${process.platform}-${process.arch}...`);
+		await runWorkspaceBuilds({ quiet: pretty });
+		if (pretty) console.log(`Finished building Tau harness in ${((performance.now() - startedAt) / 1000).toFixed(2)}s.`);
 	} catch (error) {
-		console.error(`\n${error instanceof Error ? error.message : String(error)}`);
+		if (args.has("--pretty") && error instanceof WorkspaceBuildError) {
+			console.error(`Build failed while building ${error.buildName}.`);
+			if (error.output.trim()) console.error(`\n${error.output.trimEnd()}`);
+		} else {
+			console.error(error instanceof Error ? (error.stack ?? error.message) : String(error));
+		}
 		process.exitCode = 1;
 	}
 }
