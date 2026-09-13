@@ -1002,7 +1002,7 @@ export class SettingsManager {
 	}
 
 	getQuietStartup(): boolean {
-		return this.settings.quietStartup ?? false;
+		return this.settings.quietStartup ?? true;
 	}
 
 	setQuietStartup(quiet: boolean): void {
@@ -1043,7 +1043,7 @@ export class SettingsManager {
 	}
 
 	getCollapseChangelog(): boolean {
-		return this.settings.collapseChangelog ?? false;
+		return this.settings.collapseChangelog ?? true;
 	}
 
 	setCollapseChangelog(collapse: boolean): void {

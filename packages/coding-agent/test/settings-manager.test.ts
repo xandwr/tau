@@ -354,6 +354,18 @@ describe("SettingsManager", () => {
 		});
 	});
 
+	describe("startup display settings", () => {
+		it("defaults to quiet startup and a collapsed changelog", () => {
+			const defaults = SettingsManager.inMemory();
+			expect(defaults.getQuietStartup()).toBe(true);
+			expect(defaults.getCollapseChangelog()).toBe(true);
+
+			const verbose = SettingsManager.inMemory({ quietStartup: false, collapseChangelog: false });
+			expect(verbose.getQuietStartup()).toBe(false);
+			expect(verbose.getCollapseChangelog()).toBe(false);
+		});
+	});
+
 	describe("retry settings", () => {
 		it("defaults and overrides agent retry delay cap", () => {
 			expect(SettingsManager.inMemory().getRetrySettings()).toEqual({
