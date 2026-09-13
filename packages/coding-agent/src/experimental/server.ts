@@ -52,7 +52,7 @@ export const ENV_SERVER_DIR = "PI_SERVER_DIR";
 export const ENV_SERVER_ID = "PI_SERVER_ID";
 
 export function resolveServerDirectory(directory?: string): string {
-	return resolvePath(directory ?? process.env[ENV_SERVER_DIR] ?? join(homedir(), ".pi", "server"));
+	return resolvePath(directory ?? process.env[ENV_SERVER_DIR] ?? join(homedir(), ".tau", "server"));
 }
 
 export async function ensurePrivateServerDirectory(directory: string): Promise<void> {
@@ -331,7 +331,7 @@ export interface RunningServer {
 }
 
 export interface StartServerOptions {
-	/** Server profile and socket directory. Defaults to PI_SERVER_DIR or ~/.pi/server. */
+	/** Server profile and socket directory. Defaults to PI_SERVER_DIR or ~/.tau/server. */
 	readonly directory?: string;
 	/** Logical service ID. Defaults to PI_SERVER_ID or the directory's default-server-id. */
 	readonly serverId?: ServerId;

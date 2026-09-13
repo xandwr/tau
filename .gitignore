@@ -28,7 +28,7 @@ packages/ai/src/providers/.model-generation-*/
 .npm/
 coverage/
 .nyc_output/
-.pi_config/
+.tau_config/
 tui-debug.log
 compaction-results/
 .opencode/
@@ -39,7 +39,7 @@ out.html
 packages/coding-agent/binaries/
 todo.md
 plans/
-.pi/hf-sessions/
-.pi/hf-sessions-backup/
+.tau/hf-sessions/
+.tau/hf-sessions-backup/
 collect.sh
 packages/agent/docs/extensions/pi-server-artifact/index.md

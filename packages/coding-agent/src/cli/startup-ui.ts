@@ -31,7 +31,7 @@ import {
 
 const OFFICIAL_PACKAGE_NAME = "@earendil-works/pi-coding-agent";
 const OFFICIAL_APP_NAME = "pi";
-const OFFICIAL_CONFIG_DIR_NAME = ".pi";
+const OFFICIAL_CONFIG_DIR_NAME = ".tau";
 
 interface DistributionMetadata {
 	packageName: string;

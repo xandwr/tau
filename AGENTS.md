@@ -42,4 +42,4 @@ Read and follow `C:/Users/xander/Agents/SYSTEM.md` before starting work.
 
 ## Specialized workflows
 
-- For interactive TUI testing, follow `.pi/skills/interactive-testing.md`.
+- For interactive TUI testing, follow `.tau/skills/interactive-testing.md`.
