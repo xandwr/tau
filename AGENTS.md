@@ -39,7 +39,3 @@ Read and follow `C:/Users/xander/Agents/SYSTEM.md` before starting work.
 - Before committing, inspect the status and staged diff.
 - Use `{feat,fix,docs,chore}[(ai,tui,agent,coding-agent)]: <summary>` for commit messages.
 - Never bypass hooks or force-push.
-
-## Specialized workflows
-
-- For interactive TUI testing, follow `.tau/skills/interactive-testing.md`.
