@@ -48,8 +48,8 @@ import { createExperimentalServerServices } from "./services/server.ts";
 import type { SessionCreateOptions, SessionSummary } from "./services/sessions.ts";
 import { SessionPluginSelectionConflictError, SessionWorkerManager } from "./session-worker-manager.ts";
 
-export const ENV_SERVER_DIR = "PI_SERVER_DIR";
-export const ENV_SERVER_ID = "PI_SERVER_ID";
+export const ENV_SERVER_DIR = "TAU_SERVER_DIR";
+export const ENV_SERVER_ID = "TAU_SERVER_ID";
 
 export function resolveServerDirectory(directory?: string): string {
 	return resolvePath(directory ?? process.env[ENV_SERVER_DIR] ?? join(homedir(), ".tau", "server"));
@@ -331,9 +331,9 @@ export interface RunningServer {
 }
 
 export interface StartServerOptions {
-	/** Server profile and socket directory. Defaults to PI_SERVER_DIR or ~/.tau/server. */
+	/** Server profile and socket directory. Defaults to TAU_SERVER_DIR or ~/.tau/server. */
 	readonly directory?: string;
-	/** Logical service ID. Defaults to PI_SERVER_ID or the directory's default-server-id. */
+	/** Logical service ID. Defaults to TAU_SERVER_ID or the directory's default-server-id. */
 	readonly serverId?: ServerId;
 	/** Durable session directory. Defaults to the experimental directory under the configured agent directory. */
 	readonly sessionDir?: string;

@@ -7,13 +7,13 @@ This package contains Tau's interactive terminal agent, print mode, JSON mode, R
 From the repository root:
 
 ```bash
-./pi-test.sh
+./tau-test.sh
 ```
 
 On Windows:
 
 ```powershell
-.\pi-test.ps1
+.\tau-test.ps1
 ```
 
 ## Development

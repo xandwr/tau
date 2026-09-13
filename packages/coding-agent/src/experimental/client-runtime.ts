@@ -45,7 +45,7 @@ export interface ClientRuntime {
 }
 
 export interface OpenClientRuntimeOptions {
-	/** Directory searched when --connect is omitted. Defaults to PI_SERVER_DIR or ~/.tau/server. */
+	/** Directory searched when --connect is omitted. Defaults to TAU_SERVER_DIR or ~/.tau/server. */
 	readonly directory?: string;
 }
 

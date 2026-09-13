@@ -48,17 +48,22 @@ export type PackageCommand = "install" | "remove" | "update" | "list";
 type UpdateTarget = { type: "all" } | { type: "self" } | { type: "extensions"; source?: string } | { type: "models" };
 
 const DEFAULT_INSTALLER_API_BASE = "https://pi.dev/api/installer/releases";
+const PROTECTED_SELF_UPDATE_PACKAGE = "@earendil-works/pi-coding-agent";
 const MANAGED_INSTALL_MARKER = "managed-install.json";
 const MANAGED_RELEASE_VERSION_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
+export function canSelfUpdatePackage(packageName: string): boolean {
+	return packageName !== PROTECTED_SELF_UPDATE_PACKAGE;
+}
+
 function getActiveManagedInstallRoot(): string | undefined {
-	const configuredRoot = process.env.PI_MANAGED_INSTALL_ROOT?.trim();
+	const configuredRoot = process.env.TAU_MANAGED_INSTALL_ROOT?.trim();
 	if (!configuredRoot) return undefined;
 
 	const managedRoot = resolve(configuredRoot);
 	const releasesDir = canonicalizePath(join(managedRoot, "releases"));
 	// The launcher environment is inherited by child processes. Do not classify a
-	// source checkout or another Pi installation launched from managed Pi as managed.
+	// source checkout or another Tau installation launched from managed Tau as managed.
 	if (getCwdRelativePath(canonicalizePath(getPackageDir()), releasesDir) === undefined) return undefined;
 
 	const markerPath = join(managedRoot, MANAGED_INSTALL_MARKER);
@@ -115,11 +120,13 @@ function verifyManagedRelease(releaseDir: string, expectedVersion: string): void
 	});
 	if (result.error || result.status !== 0) {
 		const reason = result.error?.message || result.stderr.trim() || `exit code ${result.status ?? "unknown"}`;
-		throw new Error(`Could not verify managed Pi ${expectedVersion}: ${reason}`);
+		throw new Error(`Could not verify managed ${APP_NAME} ${expectedVersion}: ${reason}`);
 	}
 	const installedVersion = result.stdout.trim();
 	if (installedVersion !== expectedVersion) {
-		throw new Error(`Managed Pi smoke test returned version ${installedVersion}; expected ${expectedVersion}.`);
+		throw new Error(
+			`Managed ${APP_NAME} smoke test returned version ${installedVersion}; expected ${expectedVersion}.`,
+		);
 	}
 }
 
@@ -178,7 +185,7 @@ async function runManagedSelfUpdate(managedRoot: string, version: string): Promi
 		releaseLock = await lockfile.lock(join(managedRoot, "update"), { realpath: false });
 	} catch (error: unknown) {
 		if (error instanceof Error && "code" in error && error.code === "ELOCKED") {
-			throw new Error("Another managed Pi update is already running.");
+			throw new Error(`Another managed ${APP_NAME} update is already running.`);
 		}
 		throw error;
 	}
@@ -186,7 +193,7 @@ async function runManagedSelfUpdate(managedRoot: string, version: string): Promi
 	let stageDir: string | undefined;
 	try {
 		cleanupManagedStaging(managedRoot);
-		const installerApiBase = (process.env.PI_INSTALLER_API_BASE?.trim() || DEFAULT_INSTALLER_API_BASE).replace(
+		const installerApiBase = (process.env.TAU_INSTALLER_API_BASE?.trim() || DEFAULT_INSTALLER_API_BASE).replace(
 			/\/+$/,
 			"",
 		);
@@ -337,24 +344,24 @@ Examples:
 			console.log(`${chalk.bold("Usage:")}
   ${getPackageCommandUsage("update")}
 
-Update pi, installed packages, or model catalogs.
+Update Tau, installed packages, or model catalogs.
 
 Options:
-  --self                  Update pi only (default when no target is given)
+  --self                  Attempt to update Tau only (disabled for this package)
   --extensions            Update installed packages only
   --models                Refresh model catalogs only
-  --all                   Update pi and installed packages
+  --all                   Update Tau and installed packages
   --extension <source>    Update one package only
   -a, --approve           Trust project-local files for this command
   -na, --no-approve       Ignore project-local files for this command
-  --force                 Reinstall pi even if the current version is latest
+  --force                 Reinstall Tau even if the current version is latest
 
 Short forms:
-  ${APP_NAME} update                Update pi only
-  ${APP_NAME} update --all          Update pi and all extensions
+  ${APP_NAME} update                Attempt to update Tau only
+  ${APP_NAME} update --all          Update Tau and all extensions
   ${APP_NAME} update --models       Refresh model catalogs only
   ${APP_NAME} update <source>       Update one package
-  ${APP_NAME} update pi             Update pi only (self works as alias to pi)
+  ${APP_NAME} update pi             Attempt to update Tau only (self works as alias to pi)
 `);
 			return;
 
@@ -1020,6 +1027,15 @@ export async function handlePackageCommand(
 					}
 				}
 				if (updateTargetIncludesSelf(target)) {
+					if (!canSelfUpdatePackage(PACKAGE_NAME)) {
+						console.error(
+							chalk.red(
+								`${APP_NAME} cannot self-update because that would overwrite or reinstall ${PROTECTED_SELF_UPDATE_PACKAGE}.`,
+							),
+						);
+						process.exitCode = 1;
+						return true;
+					}
 					const managedInstallRoot = getActiveManagedInstallRoot();
 					if (managedInstallRoot && options.force) {
 						console.error(

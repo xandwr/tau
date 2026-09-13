@@ -1,6 +1,6 @@
 # Settings
 
-Pi uses JSON settings files with project settings overriding global settings.
+Tau uses JSON settings files with project settings overriding global settings.
 
 | Location | Scope |
 |----------|-------|
@@ -11,15 +11,15 @@ Edit directly or use `/settings` for common options. To save startup model defau
 
 ## Project Trust
 
-On interactive startup, pi asks before trusting a project folder that contains project-local settings, resources, or project `.agents/skills` and has no saved decision for the folder or a parent folder in `~/.tau/agent/trust.json`. Trusting a project allows pi to load `.tau/settings.json` and `.tau` resources, install missing project packages, and execute project extensions.
+On interactive startup, Tau asks before trusting a project folder that contains project-local settings, resources, or project `.agents/skills` and has no saved decision for the folder or a parent folder in `~/.tau/agent/trust.json`. Trusting a project allows Tau to load `.tau/settings.json` and `.tau` resources, install missing project packages, and execute project extensions.
 
 Non-interactive modes (`-p`, `--mode json`, and `--mode rpc`) do not show a trust prompt. Without an applicable saved trust decision, they use `defaultProjectTrust` from global settings: `ask` (default) and `never` ignore those project resources, while `always` trusts them. Pass `--approve`/`-a` or `--no-approve`/`-na` to override project trust for one run.
 
 If no extension or saved decision applies, `defaultProjectTrust` controls the fallback behavior. Set it to `"ask"`, `"always"`, or `"never"` in `~/.tau/agent/settings.json`, or change it with `/settings`.
 
-`pi config` and package commands use the same project trust flow, except `pi update` never prompts. Pass `--approve` to trust project-local settings for one command or `--no-approve` to ignore them.
+`tau config` and package commands use the same project trust flow, except `tau update` never prompts. Pass `--approve` to trust project-local settings for one command or `--no-approve` to ignore them.
 
-Use `/trust` in interactive mode to save a project trust decision for future sessions, including trust for the immediate parent folder. It writes `~/.tau/agent/trust.json` only; the current session is not reloaded, so restart pi for changes to take effect.
+Use `/trust` in interactive mode to save a project trust decision for future sessions, including trust for the immediate parent folder. It writes `~/.tau/agent/trust.json` only; the current session is not reloaded, so restart Tau for changes to take effect.
 
 ## All Settings
 
@@ -58,7 +58,7 @@ Use `/trust` in interactive mode to save a project trust decision for future ses
 | `defaultProjectTrust` | string | `"ask"` | Fallback project trust behavior: `"ask"`, `"always"`, or `"never"`. Global setting only |
 | `collapseChangelog` | boolean | `false` | Show condensed changelog after updates |
 | `enableInstallTelemetry` | boolean | `true` | Send the anonymous install/update ping and selected provider attribution headers. This does not control update checks |
-| `enableAnalytics` | boolean | `false` | Opt-in analytics data sharing. Currently only asked for during the experimental first-time setup (`PI_EXPERIMENTAL=1`) |
+| `enableAnalytics` | boolean | `false` | Opt-in analytics data sharing. Currently only asked for during the experimental first-time setup (`TAU_EXPERIMENTAL=1`) |
 | `trackingId` | string | - | Analytics tracking identifier, generated when `enableAnalytics` is turned on |
 | `doubleEscapeAction` | string | `"tree"` | Action for double-escape: `"tree"`, `"fork"`, or `"none"` |
 | `treeFilterMode` | string | `"default"` | Default filter for `/tree`: `"default"`, `"no-tools"`, `"user-only"`, `"labeled-only"`, `"all"` |
@@ -71,7 +71,7 @@ Use `/trust` in interactive mode to save a project trust decision for future ses
 | `fullscreenScrollbar` | string | `"auto"` | Fullscreen transcript scrollbar: `"auto"` shows it temporarily while scrolling or while the pointer is over its rightmost-column track, `"always"` reserves that column and keeps it visible, and `"hidden"` hides it. Has no effect in regular TUI mode |
 | `fullscreenCopyOnSelect` | boolean | `true` | Automatically copy selected text in fullscreen mode. When disabled, selections stay highlighted and `Ctrl+X` copies the active selection |
 
-For VS Code, include `--wait` so pi resumes after the editor exits:
+For VS Code, include `--wait` so Tau resumes after the editor exits:
 
 ```json
 {
@@ -83,7 +83,7 @@ For VS Code, include `--wait` so pi resumes after the editor exits:
 
 `enableInstallTelemetry` controls the anonymous install/update ping to `https://pi.dev/api/report-install` and Pi attribution headers for OpenRouter, NVIDIA NIM, and Cloudflare provider requests. Opting out disables both.
 
-Tau does not check for application or extension updates automatically. Explicit package update commands remain available. Use `--offline` or `PI_OFFLINE=1` to disable startup network operations such as install/update telemetry.
+Tau does not check for application or extension updates automatically. Explicit extension and model update commands remain available, while self-update is disabled for the upstream-named package. Use `--offline` or `TAU_OFFLINE=1` to disable startup network operations such as install/update telemetry.
 
 ### Network
 
@@ -287,7 +287,7 @@ An empty array starts with no built-in tools while preserving extension and SDK 
 { "sessionDir": ".tau/sessions" }
 ```
 
-When multiple sources specify a session directory, precedence is `--session-dir`, `PI_CODING_AGENT_SESSION_DIR`, then `sessionDir` in settings.json.
+When multiple sources specify a session directory, precedence is `--session-dir`, `TAU_CODING_AGENT_SESSION_DIR`, then `sessionDir` in settings.json.
 
 ### Model Cycling
 

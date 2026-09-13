@@ -11,12 +11,12 @@ npm install --ignore-scripts
 npm run format
 npm run check
 ./test.sh
-./pi-test.sh
+./tau-test.sh
 ```
 
-On Windows, use `./test.ps1` and `./pi-test.ps1` from PowerShell.
+On Windows, use `./test.ps1` and `./tau-test.ps1` from PowerShell.
 
-`npm run format` formats the workspace. `npm run check` validates formatting, lint rules, types, dependency boundaries, and browser entry points. `./test.sh` runs non-e2e tests. `./pi-test.sh` runs Tau from source.
+`npm run format` formats the workspace. `npm run check` validates formatting, lint rules, types, dependency boundaries, and browser entry points. `./test.sh` runs non-e2e tests. `./tau-test.sh` runs Tau from source.
 
 For a tighter loop, use `npm run lint`, `npm run typecheck`, or `npm run dev -- <arguments>` directly.
 

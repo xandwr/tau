@@ -13,6 +13,12 @@ import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import lockfile from "proper-lockfile";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../src/config.ts", async (importOriginal) => ({
+	...((await importOriginal()) as Record<string, unknown>),
+	PACKAGE_NAME: "@test/tau-coding-agent",
+}));
+
 import { ENV_AGENT_DIR, PACKAGE_NAME, VERSION } from "../src/config.ts";
 import { ModelRuntime } from "../src/core/model-runtime.ts";
 import type { ResolvedPaths } from "../src/core/package-manager.ts";
@@ -20,17 +26,22 @@ import { InMemorySettingsStorage, SettingsManager } from "../src/core/settings-m
 import { ProjectTrustStore } from "../src/core/trust-manager.ts";
 import { main } from "../src/main.ts";
 import { ConfigSelectorComponent } from "../src/modes/interactive/components/config-selector.ts";
-import { handlePackageCommand } from "../src/package-manager-cli.ts";
+import { canSelfUpdatePackage, handlePackageCommand } from "../src/package-manager-cli.ts";
 import { allowNetwork } from "./test-network-env.ts";
 
 describe("package commands", () => {
+	it("protects the upstream-named package from self-update", () => {
+		expect(canSelfUpdatePackage("@earendil-works/pi-coding-agent")).toBe(false);
+		expect(canSelfUpdatePackage(PACKAGE_NAME)).toBe(true);
+	});
+
 	let tempDir: string;
 	let agentDir: string;
 	let projectDir: string;
 	let packageDir: string;
 	let originalCwd: string;
 	let originalAgentDir: string | undefined;
-	let originalPiPackageDir: string | undefined;
+	let originalTauPackageDir: string | undefined;
 	let originalPath: string | undefined;
 	let originalExitCode: typeof process.exitCode;
 	let originalExecPath: string;
@@ -68,14 +79,14 @@ fs.writeFileSync(${JSON.stringify(npmRecordPath)}, JSON.stringify(args));
 if (${npmExitCode} !== 0) process.exit(${npmExitCode});
 const binDir = path.join(process.cwd(), "node_modules", ".bin");
 fs.mkdirSync(binDir, { recursive: true });
-const piPath = path.join(binDir, process.platform === "win32" ? "pi.cmd" : "pi");
+const tauPath = path.join(binDir, process.platform === "win32" ? "tau.cmd" : "tau");
 fs.writeFileSync(
-	piPath,
+	tauPath,
 	process.platform === "win32"
 		? "@echo off\\r\\necho ${targetVersion}\\r\\n"
 		: "#!/bin/sh\\nprintf '%s\\n' ${targetVersion}\\n",
 );
-if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
+if (process.platform !== "win32") fs.chmodSync(tauPath, 0o755);
 `,
 		);
 		const npmPath = join(binDir, process.platform === "win32" ? "npm.cmd" : "npm");
@@ -87,9 +98,9 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 		);
 		chmodSync(npmPath, 0o755);
 
-		vi.stubEnv("PI_INSTALLER_API_BASE", "https://example.test/api/installer/releases");
-		vi.stubEnv("PI_MANAGED_INSTALL_ROOT", managedRoot);
-		process.env.PI_PACKAGE_DIR = selfPackageDir;
+		vi.stubEnv("TAU_INSTALLER_API_BASE", "https://example.test/api/installer/releases");
+		vi.stubEnv("TAU_MANAGED_INSTALL_ROOT", managedRoot);
+		process.env.TAU_PACKAGE_DIR = selfPackageDir;
 		process.env.PATH = `${binDir}${delimiter}${originalPath ?? ""}`;
 		return { managedRoot, npmRecordPath };
 	}
@@ -145,7 +156,7 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 
 		originalCwd = process.cwd();
 		originalAgentDir = process.env[ENV_AGENT_DIR];
-		originalPiPackageDir = process.env.PI_PACKAGE_DIR;
+		originalTauPackageDir = process.env.TAU_PACKAGE_DIR;
 		originalPath = process.env.PATH;
 		originalExitCode = process.exitCode;
 		originalExecPath = process.execPath;
@@ -173,10 +184,10 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 		} else {
 			process.env[ENV_AGENT_DIR] = originalAgentDir;
 		}
-		if (originalPiPackageDir === undefined) {
-			delete process.env.PI_PACKAGE_DIR;
+		if (originalTauPackageDir === undefined) {
+			delete process.env.TAU_PACKAGE_DIR;
 		} else {
-			process.env.PI_PACKAGE_DIR = originalPiPackageDir;
+			process.env.TAU_PACKAGE_DIR = originalTauPackageDir;
 		}
 		if (originalPath === undefined) {
 			delete process.env.PATH;
@@ -448,7 +459,7 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 
 			const stdout = logSpy.mock.calls.map(([message]) => String(message)).join("\n");
 			expect(stdout).toContain("Usage:");
-			expect(stdout).toContain("pi install <source> [-l]");
+			expect(stdout).toContain("tau install <source> [-l]");
 			expect(errorSpy).not.toHaveBeenCalled();
 			expect(process.exitCode).toBeUndefined();
 		} finally {
@@ -533,7 +544,7 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 
 			const stderr = errorSpy.mock.calls.map(([message]) => String(message)).join("\n");
 			expect(stderr).toContain('Unknown option --unknown for "install".');
-			expect(stderr).toContain('Use "pi --help" or "pi install <source> [-l] [--approve|--no-approve]".');
+			expect(stderr).toContain('Use "tau --help" or "tau install <source> [-l] [--approve|--no-approve]".');
 			expect(process.exitCode).toBe(1);
 		} finally {
 			errorSpy.mockRestore();
@@ -548,7 +559,7 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 
 			const stderr = errorSpy.mock.calls.map(([message]) => String(message)).join("\n");
 			expect(stderr).toContain("Missing install source.");
-			expect(stderr).toContain("Usage: pi install <source> [-l]");
+			expect(stderr).toContain("Usage: tau install <source> [-l]");
 			expect(stderr).not.toContain("at ");
 			expect(process.exitCode).toBe(1);
 		} finally {
@@ -567,7 +578,7 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 
 			expect(fetchMock).toHaveBeenCalledOnce();
 			expect(logSpy.mock.calls.map(([message]) => String(message)).join("\n")).toContain(
-				`pi is already up to date (v${VERSION})`,
+				`tau is already up to date (v${VERSION})`,
 			);
 			expect(errorSpy).not.toHaveBeenCalled();
 			expect(process.exitCode).toBeUndefined();
@@ -620,7 +631,7 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 			expect.arrayContaining(["ci", "--ignore-scripts"]),
 		);
 		expect(logSpy.mock.calls.map(([message]) => String(message)).join("\n")).toContain(
-			`Updated pi from ${VERSION} to ${targetVersion}`,
+			`Updated tau from ${VERSION} to ${targetVersion}`,
 		);
 		expect(errorSpy).not.toHaveBeenCalled();
 		expect(process.exitCode).toBeUndefined();
@@ -642,9 +653,9 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 
 		expect(readFileSync(join(managedRoot, "current-version"), "utf8")).toBe(`${VERSION}\n`);
 		expect(existsSync(npmRecordPath)).toBe(false);
-		expect(logSpy.mock.calls.map(([message]) => String(message)).join("\n")).not.toContain("Updated pi from");
+		expect(logSpy.mock.calls.map(([message]) => String(message)).join("\n")).not.toContain("Updated tau from");
 		expect(errorSpy.mock.calls.map(([message]) => String(message)).join("\n")).toContain(
-			"Another managed Pi update is already running.",
+			"Another managed tau update is already running.",
 		);
 		expect(process.exitCode).toBe(1);
 	});
@@ -661,7 +672,7 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 		expect(fetchMock).not.toHaveBeenCalled();
 		expect(existsSync(npmRecordPath)).toBe(false);
 		expect(errorSpy.mock.calls.map(([message]) => String(message)).join("\n")).toContain(
-			"Managed pi installations do not support --force",
+			"Managed tau installations do not support --force",
 		);
 		expect(process.exitCode).toBe(1);
 	});
@@ -678,7 +689,7 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 		expect(readFileSync(join(managedRoot, "current-version"), "utf8")).toBe(`${VERSION}\n`);
 		expect(existsSync(join(managedRoot, "releases", targetVersion))).toBe(false);
 		expect(readdirSync(join(managedRoot, "staging"))).toEqual([]);
-		expect(logSpy.mock.calls.map(([message]) => String(message)).join("\n")).not.toContain("Updated pi from");
+		expect(logSpy.mock.calls.map(([message]) => String(message)).join("\n")).not.toContain("Updated tau from");
 		expect(errorSpy.mock.calls.map(([message]) => String(message)).join("\n")).toContain("exited with code 23");
 		expect(process.exitCode).toBe(1);
 	});
@@ -693,7 +704,7 @@ if (process.platform !== "win32") fs.chmodSync(piPath, 0o755);
 			join(inheritedManagedRoot, "managed-install.json"),
 			JSON.stringify({ kind: "pi-managed-install", schemaVersion: 1, layout: "releases-v1" }),
 		);
-		vi.stubEnv("PI_MANAGED_INSTALL_ROOT", inheritedManagedRoot);
+		vi.stubEnv("TAU_MANAGED_INSTALL_ROOT", inheritedManagedRoot);
 		const fakeNpmPath = join(tempDir, "fake-npm.cjs");
 		const recordPath = join(tempDir, "self-update.json");
 		mkdirSync(selfPackageDir, { recursive: true });
@@ -713,7 +724,7 @@ else fs.writeFileSync(${JSON.stringify(recordPath)},JSON.stringify(args));
 			join(projectDir, ".tau", "settings.json"),
 			JSON.stringify({ npmCommand: [originalExecPath, fakeNpmPath, "--prefix", projectPrefix] }, null, 2),
 		);
-		process.env.PI_PACKAGE_DIR = selfPackageDir;
+		process.env.TAU_PACKAGE_DIR = selfPackageDir;
 		Object.defineProperty(process, "execPath", {
 			value: join(selfPackageDir, "dist", "cli.js"),
 			configurable: true,
@@ -736,7 +747,7 @@ else fs.writeFileSync(${JSON.stringify(recordPath)},JSON.stringify(args));
 			expect(recordedArgs).toContain(`${PACKAGE_NAME}@${VERSION}`);
 			expect(recordedArgs).not.toContain(PACKAGE_NAME);
 			expect(recordedArgs).not.toContain(projectPrefix);
-			expect(stdout).toContain(`Updated pi from ${VERSION} to ${VERSION}`);
+			expect(stdout).toContain(`Updated tau from ${VERSION} to ${VERSION}`);
 		} finally {
 			logSpy.mockRestore();
 			errorSpy.mockRestore();
@@ -760,7 +771,7 @@ else fs.writeFileSync(${JSON.stringify(recordPath)},JSON.stringify(args));
 			join(agentDir, "settings.json"),
 			JSON.stringify({ npmCommand: [originalExecPath, fakeNpmPath, "--prefix", globalPrefix] }, null, 2),
 		);
-		process.env.PI_PACKAGE_DIR = selfPackageDir;
+		process.env.TAU_PACKAGE_DIR = selfPackageDir;
 		Object.defineProperty(process, "execPath", {
 			value: join(selfPackageDir, "dist", "cli.js"),
 			configurable: true,
@@ -782,7 +793,7 @@ else fs.writeFileSync(${JSON.stringify(recordPath)},JSON.stringify(args));
 			const recordedArgs = JSON.parse(readFileSync(recordPath, "utf-8")) as string[];
 			expect(recordedArgs).toContain(`${PACKAGE_NAME}@${targetVersion}`);
 			expect(recordedArgs).not.toContain(PACKAGE_NAME);
-			expect(stdout).toContain(`Updated pi from ${VERSION} to ${targetVersion}`);
+			expect(stdout).toContain(`Updated tau from ${VERSION} to ${targetVersion}`);
 		} finally {
 			logSpy.mockRestore();
 			errorSpy.mockRestore();
@@ -810,7 +821,7 @@ else {
 			join(agentDir, "settings.json"),
 			JSON.stringify({ npmCommand: [originalExecPath, fakeNpmPath, "--prefix", globalPrefix] }, null, 2),
 		);
-		process.env.PI_PACKAGE_DIR = selfPackageDir;
+		process.env.TAU_PACKAGE_DIR = selfPackageDir;
 		Object.defineProperty(process, "execPath", {
 			value: join(selfPackageDir, "dist", "cli.js"),
 			configurable: true,
@@ -855,7 +866,7 @@ else {
 		writeFileSync(fakePnpmPath, fakePnpmScript);
 		chmodSync(fakePnpmPath, 0o755);
 		process.env.PATH = `${fakeBinDir}${process.env.PATH ? `${delimiter}${process.env.PATH}` : ""}`;
-		process.env.PI_PACKAGE_DIR = selfPackageDir;
+		process.env.TAU_PACKAGE_DIR = selfPackageDir;
 		Object.defineProperty(process, "execPath", {
 			value: join(tempDir, "pnpm", "bin", "node"),
 			configurable: true,
@@ -874,10 +885,10 @@ else {
 			expect(process.exitCode).toBe(1);
 			const stdout = logSpy.mock.calls.map(([message]) => String(message)).join("\n");
 			const stderr = errorSpy.mock.calls.map(([message]) => String(message)).join("\n");
-			expect(stdout).not.toContain("Updated pi");
+			expect(stdout).not.toContain("Updated tau");
 			expect(stderr).toContain("exited with code 23");
 			expect(stderr).toContain("If pnpm reports missing package versions");
-			expect(stderr).toContain("Run `pnpm store prune` and retry `pi update --self`.");
+			expect(stderr).toContain("Run `pnpm store prune` and retry `tau update --self`.");
 		} finally {
 			logSpy.mockRestore();
 			errorSpy.mockRestore();
@@ -907,7 +918,7 @@ if(args.includes("install")) process.exit(23);
 			join(agentDir, "settings.json"),
 			JSON.stringify({ npmCommand: [originalExecPath, fakeNpmPath, "--prefix", globalPrefix] }, null, 2),
 		);
-		process.env.PI_PACKAGE_DIR = selfPackageDir;
+		process.env.TAU_PACKAGE_DIR = selfPackageDir;
 		Object.defineProperty(process, "execPath", {
 			value: join(selfPackageDir, "dist", "cli.js"),
 			configurable: true,
@@ -927,7 +938,7 @@ if(args.includes("install")) process.exit(23);
 			expect(process.exitCode).toBe(1);
 			const stdout = logSpy.mock.calls.map(([message]) => String(message)).join("\n");
 			const stderr = errorSpy.mock.calls.map(([message]) => String(message)).join("\n");
-			expect(stdout).not.toContain(`Updated pi`);
+			expect(stdout).not.toContain(`Updated tau`);
 			expect(stderr).toContain("exited with code 23");
 			const recordedCalls = JSON.parse(readFileSync(recordPath, "utf-8")) as string[][];
 			expect(recordedCalls).toEqual([

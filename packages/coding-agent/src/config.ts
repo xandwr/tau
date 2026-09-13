@@ -388,7 +388,7 @@ export function findNodePackageDir(startDir: string): string {
 
 export function getPackageDir(): string {
 	// Allow override via environment variable (useful for Nix/Guix where store paths tokenize poorly)
-	const envDir = process.env.PI_PACKAGE_DIR;
+	const envDir = process.env.TAU_PACKAGE_DIR;
 	if (envDir) {
 		return normalizePath(envDir);
 	}
@@ -504,7 +504,6 @@ export const APP_TITLE: string = piConfigName ? APP_NAME : "π";
 export const CONFIG_DIR_NAME: string = pkg.piConfig?.configDir || ".tau";
 export const VERSION: string = pkg.version || "0.0.0";
 
-// e.g., PI_CODING_AGENT_DIR or TAU_CODING_AGENT_DIR
 export const ENV_AGENT_DIR = `${APP_NAME.toUpperCase()}_CODING_AGENT_DIR`;
 export const ENV_SESSION_DIR = `${APP_NAME.toUpperCase()}_CODING_AGENT_SESSION_DIR`;
 
@@ -516,7 +515,7 @@ const DEFAULT_SHARE_VIEWER_URL = "https://pi.dev/session/";
 
 /** Get the share viewer URL for a gist ID. */
 export function getShareViewerUrl(gistId: string): string {
-	const baseUrl = process.env.PI_SHARE_VIEWER_URL || DEFAULT_SHARE_VIEWER_URL;
+	const baseUrl = process.env.TAU_SHARE_VIEWER_URL || DEFAULT_SHARE_VIEWER_URL;
 	return `${baseUrl}#${gistId}`;
 }
 
