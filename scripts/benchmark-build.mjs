@@ -7,9 +7,14 @@ import { performance } from "node:perf_hooks";
 const npmCli = join(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
 const npmCommand = process.platform === "win32" ? process.execPath : "npm";
 const npmArgs = (...args) => (process.platform === "win32" ? [npmCli, ...args] : args);
+const benchmarkArgs = new Set(process.argv.slice(2));
 const steps = [];
 
-if (process.platform === "win32") {
+for (const argument of benchmarkArgs) {
+	if (argument !== "--include-native") throw new Error(`Unknown argument: ${argument}`);
+}
+
+if (benchmarkArgs.has("--include-native") && process.platform === "win32") {
 	steps.push({
 		name: `native:win32-${process.arch}`,
 		command: npmCommand,
