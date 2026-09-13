@@ -27,6 +27,8 @@ export type ResolvedRequestAuth =
 	| { ok: false; error: string };
 export { clearApiKeyCache } from "./provider-composer.ts";
 
+const modelRegistryRuntimes = new WeakMap<ModelRegistry, ModelRuntime>();
+
 /**
  * Synchronous compatibility facade exposed to extensions.
  * Coding-agent internals use ModelRuntime directly.
@@ -36,6 +38,7 @@ export class ModelRegistry {
 
 	constructor(runtime: ModelRuntime) {
 		this.runtime = runtime;
+		modelRegistryRuntimes.set(this, runtime);
 	}
 
 	/** Reload models.json asynchronously. Await before making synchronous registry reads. */
@@ -170,4 +173,10 @@ export class ModelRegistry {
 	getRegisteredProviderIds(): readonly string[] {
 		return this.runtime.getRegisteredProviderIds();
 	}
+}
+
+export function getModelRegistryRuntime(registry: ModelRegistry): ModelRuntime {
+	const runtime = modelRegistryRuntimes.get(registry);
+	if (!runtime) throw new Error("Unknown model registry");
+	return runtime;
 }
