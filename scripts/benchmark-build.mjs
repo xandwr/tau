@@ -11,7 +11,9 @@ const benchmarkArgs = new Set(process.argv.slice(2));
 const steps = [];
 
 for (const argument of benchmarkArgs) {
-	if (argument !== "--include-native") throw new Error(`Unknown argument: ${argument}`);
+	if (argument !== "--include-native" && argument !== "--refresh-models") {
+		throw new Error(`Unknown argument: ${argument}`);
+	}
 }
 
 if (benchmarkArgs.has("--include-native") && process.platform === "win32") {
@@ -31,11 +33,13 @@ steps.push(
 		command: npmCommand,
 		args: npmArgs("--prefix", "packages/telemetry", "run", "build"),
 	},
-	{
-		name: "ai:model-generation",
-		command: npmCommand,
-		args: npmArgs("--prefix", "packages/ai", "run", "generate-models"),
-	},
+);
+
+if (benchmarkArgs.has("--refresh-models")) {
+	steps.push({ name: "ai:model-generation", command: npmCommand, args: npmArgs("run", "generate:models") });
+}
+
+steps.push(
 	{
 		name: "ai:compile",
 		command: npmCommand,
