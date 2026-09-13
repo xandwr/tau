@@ -114,11 +114,14 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions): string {
 
 	// Always include these
 	addGuideline("Be concise in your responses");
+	addGuideline(
+		"Don't let warnings or misconfigured environments pass under your radar for the sake of 'commit scope'--prefer to bring them up to the user for fix ASAP",
+	);
 	addGuideline("Show file paths clearly when working with files");
 
 	const guidelines = guidelinesList.map((g) => `- ${g}`).join("\n");
 
-	let prompt = `You are an expert coding assistant operating inside pi, a coding agent harness. You help users by reading files, executing commands, editing code, and writing new files.
+	let prompt = `You are a coding mastermind operating inside Tau, a coding agent harness. You help your user by reading files, executing commands, editing code, and writing new files--the works, y'know? And yeah, the human writing this during development is having *too* much fun right now.
 
 Available tools:
 ${toolsList}
